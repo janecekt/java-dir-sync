@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
+<?import javafx.scene.web.*?>
+
+<AnchorPane id="AnchorPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+            prefHeight="400.0" prefWidth="600.0"
+            fx:controller="com.jdirsync.ui.view.MainFormView"
+            xmlns:fx="http://javafx.com/fxml">
+  <children>
+    <VBox id="mainVBox" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+      <children>
+        <ToolBar id="toolBar" VBox.vgrow="NEVER">
+          <items>
+            <Button fx:id="leftToRightButton" onAction="#leftToRightButtonPressed" text="Left-To-Right" />
+            <Button fx:id="rightToLeftButton" onAction="#rightToLeftButtonPressed" text="Right-To-Left" />
+            <Separator id="separatorHorizontal1" minWidth="-Infinity" />
+            <Button fx:id="compareButton" onAction="#compareButtonPressed" text="Compare" />
+            <Button fx:id="synchronizeButton" onAction="#synchronizeButtonPressed" text="Synchronize" />
+            <Separator id="separatorHorizontal2" minWidth="-Infinity" />
+            <Label fx:id="statusLabel" text="Status" />
+          </items>
+        </ToolBar>
+        <GridPane id="gridPane1" VBox.vgrow="NEVER">
+          <children>
+              <Label fx:id="leftNameLabel" text="LeftName" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+              <Label fx:id="leftSummaryLabel" text="LeftSummary" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+              <Label fx:id="rightNameLabel" text="RightName" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+              <Label fx:id="rightSummaryLabel" text="RightSummary" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+          </children>
+          <columnConstraints>
+              <ColumnConstraints hgrow="SOMETIMES"  />
+              <ColumnConstraints hgrow="SOMETIMES"  />
+          </columnConstraints>
+          <rowConstraints>
+              <RowConstraints vgrow="NEVER" />
+              <RowConstraints vgrow="NEVER" />
+          </rowConstraints>
+        </GridPane>
+        <SplitPane fx:id="mainSplitPane" dividerPositions="0.75" focusTraversable="true" orientation="VERTICAL" VBox.vgrow="ALWAYS">
+          <items>
+            <TableView fx:id="diffTableView" prefHeight="200.0" prefWidth="200.0" style="">
+              <columns>
+                <TableColumn fx:id="directoryColumn" prefWidth="250" text="Directory" />
+                <!--TableColumn fx:id="nameColumn" prefWidth="150" text="Name" /-->
+                <TableColumn fx:id="diffTypeColumn" prefWidth="150" text="Diff Type" />
+                <TableColumn fx:id="actionColumn" prefWidth="150" text="Action" />
+                <TableColumn fx:id="leftColumn" prefWidth="250" text="Left" />
+                <TableColumn fx:id="arrowColumn" minWidth="30" maxWidth="30"  />
+                <TableColumn fx:id="rightColumn" prefWidth="250" text="Right" />
+              </columns>
+            </TableView>
+            <WebView fx:id="logWebView" />
+          </items>
+        </SplitPane>
+      </children>
+    </VBox>
+  </children>
+</AnchorPane>
