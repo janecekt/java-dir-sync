@@ -18,6 +18,7 @@
 package com.jdirsync.builder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -32,11 +33,69 @@ public class DiffBuilder {
         return iterator.hasNext() ? iterator.next() : null;
     }
 
-
     public List<DiffRecord> buildDiff(DirectoryNode leftRoot, DirectoryNode rightRoot) {
         List<DiffRecord> diffList = new ArrayList<>();
         buildDiff(new String[0], leftRoot, rightRoot, diffList);
+        Collections.sort(diffList, DiffRecord.PathAndNameComparator.getInstance());
+        groupRelatedRecords(diffList);
         return diffList;
+    }
+
+
+    private void groupRelatedRecords(List<DiffRecord> diffList) {
+        // Reorder list grouping potentially moved items together
+        for (int i=0; i < diffList.size(); i++) {
+            DiffRecord recordI = diffList.get(i);
+
+            // First NON-MOVED item which is MISSING_RIGHT
+            if (recordI.isMoved() || recordI.getDiffType() != DiffRecord.DiffType.MISSING_RIGHT) {
+                continue;
+            }
+
+            int insertIncrement = 1;
+
+            // Move all similar MISSING_RIGHT items
+            for (int j=i+1; j< diffList.size(); j++) {
+                DiffRecord recordJ = diffList.get(j);
+
+                // If records are similar
+                if ( (recordJ.getDiffType() == DiffRecord.DiffType.MISSING_RIGHT) && recordI.getName().equals(recordJ.getName()) )
+                {
+                    // Remove at index J
+                    diffList.remove(j);
+                    diffList.add(i+insertIncrement, recordJ);
+                    insertIncrement++;
+                    recordI.setMoved(true);
+                    recordJ.setMoved(true);
+                }
+            }
+
+            // Move all similar MISSING_LEFT items
+            for (int j=1; j< diffList.size(); j++) {
+                if (i == j) {
+                    continue;
+                }
+
+                DiffRecord recordJ = diffList.get(j);
+
+                // If records are similar
+                if ( (recordJ.getDiffType() == DiffRecord.DiffType.MISSING_LEFT) && recordI.getName().equals(recordJ.getName()) )
+                {
+                    // Remove at index J
+                    diffList.remove(j);
+                    if (j < i+insertIncrement) {
+                        diffList.add(i+insertIncrement-1, recordJ);
+                    }
+                    else {
+                        diffList.add(i+insertIncrement, recordJ);
+                    }
+                    insertIncrement++;
+                    recordI.setMoved(true);
+                    recordJ.setMoved(true);
+                }
+            }
+
+        }
     }
 
 

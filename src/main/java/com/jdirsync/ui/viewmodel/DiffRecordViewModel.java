@@ -28,7 +28,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 
 public class DiffRecordViewModel {
-    public enum Style { NONE, DELETE, OVERWRITE, CREATE, USE, DESTRUCTIVE }
+    public enum Style { NONE, DELETE, OVERWRITE, CREATE, USE, DESTRUCTIVE, MOVED }
 
     private DiffRecord diffRecord;
     private StringProperty leftNameProperty;
@@ -36,6 +36,7 @@ public class DiffRecordViewModel {
     private ReadOnlyStringWrapper pathProperty;
     private ReadOnlyStringWrapper nameProperty;
     private ReadOnlyStringWrapper diffTypeProperty;
+    private ReadOnlyObjectWrapper<Style> diffTypeStyleProperty;
     private ReadOnlyObjectWrapper<Style> leftStyleProperty;
     private ReadOnlyStringWrapper leftSummaryProperty;
     private ReadOnlyObjectWrapper<Style> rightStyleProperty;
@@ -43,17 +44,18 @@ public class DiffRecordViewModel {
     private ReadOnlyObjectWrapper<Style> actionStyleProperty;
     private StringProperty actionSummaryProperty;
     private ObjectProperty<DiffRecord.Action> actionProperty;
+    private int order;
 
-    public DiffRecordViewModel(DiffRecord diffRecord, StringProperty leftNameProperty, StringProperty rightNameProperty) {
+    public DiffRecordViewModel(DiffRecord diffRecord, StringProperty leftNameProperty, StringProperty rightNameProperty, int order) {
         this.diffRecord = diffRecord;
         this.leftNameProperty = leftNameProperty;
         this.rightNameProperty = rightNameProperty;
+        this.order = order;
         this.pathProperty = new ReadOnlyStringWrapper(diffRecord.getPathString());
-        this.nameProperty = new ReadOnlyStringWrapper(
-                (diffRecord.getLeftNode() != null)
-                        ? diffRecord.getLeftNode().getName()
-                        : diffRecord.getRightNode().getName());
+        this.nameProperty = new ReadOnlyStringWrapper(diffRecord.getName());
         this.diffTypeProperty = new ReadOnlyStringWrapper();
+        this.diffTypeStyleProperty = new ReadOnlyObjectWrapper<>(
+                diffRecord.isMoved() ? Style.MOVED : Style.NONE);
 
         this.leftSummaryProperty = new ReadOnlyStringWrapper();
         this.leftStyleProperty = new ReadOnlyObjectWrapper<>();
@@ -178,6 +180,10 @@ public class DiffRecordViewModel {
         }
     }
 
+    public int getOrder() {
+        return order;
+    }
+
     public DiffRecord getDiffRecord() {
         return diffRecord;
     }
@@ -194,6 +200,11 @@ public class DiffRecordViewModel {
 
     public ReadOnlyStringWrapper diffTypeProperty() {
         return diffTypeProperty;
+    }
+
+
+    public ReadOnlyObjectWrapper<Style> diffTypeStyleProperty() {
+        return diffTypeStyleProperty;
     }
 
 

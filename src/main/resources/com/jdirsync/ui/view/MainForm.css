@@ -56,3 +56,8 @@
 .DESTRUCTIVE {
     -fx-fill: brown;
 }
+
+.MOVED {
+    -fx-fill: purple;
+    -fx-font-weight: bold;
+}

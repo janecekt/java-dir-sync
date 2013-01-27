@@ -17,14 +17,14 @@
  */
 package com.jdirsync.model;
 
+import java.util.Comparator;
+
 public class DiffRecord {
     public static enum Action { NONE, USE_LEFT, USE_RIGHT }
     public static enum DiffType { MISSING_LEFT, MISSING_RIGHT,
         LEFT_DIR_RIGHT_FILE, LEFT_FILE_RIGHT_DIR,
         LEFT_NEWER, RIGHT_NEWER,
         SIZE }
-
-
 
     private String[] path;
     private DirectoryNode leftParent;
@@ -33,6 +33,52 @@ public class DiffRecord {
     private Node rightNode;
     private Action action;
     private DiffType diffType;
+    private boolean isMoved;
+
+    public static class PathAndNameComparator implements Comparator<DiffRecord> {
+        private static Comparator<DiffRecord> instance;
+
+        public static Comparator<DiffRecord> getInstance() {
+            if (instance == null) {
+                instance = new PathAndNameComparator();
+            }
+            return instance;
+        }
+
+        private PathAndNameComparator() {}
+
+        @Override
+        public int compare(DiffRecord o1, DiffRecord o2) {
+            if (o1 != null && o2 != null) {
+                int cmp = comparePath(o1.getPath(), o2.getPath());
+                if (cmp != 0) {
+                    return cmp;
+                }
+                return o1.getName().compareTo(o2.getName());
+            }
+
+            // One of the records is null
+            if (o1 == null) {
+                return o2 == null ? 0 : -1;
+            }
+
+            // Both are NULL
+            return 0;
+        }
+
+        private int comparePath(String[] path1, String[] path2) {
+            int i;
+            for (i = 0; i<Math.max(path1.length, path2.length); i++) {
+                String part1 = (i < path1.length) ? path1[i] : "";
+                String part2 = (i < path2.length) ? path2[i] : "";
+                int cmp = part1.compareTo(part2);
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        }
+    }
 
 
     public DiffRecord(String[] path, DirectoryNode leftParent, Node leftNode, DirectoryNode rightParent, Node rightNode) {
@@ -45,6 +91,7 @@ public class DiffRecord {
         this.rightParent = rightParent;
         this.rightNode = rightNode;
         this.action = Action.NONE;
+        this.isMoved = false;
 
         // Analyze diff
         if (leftNode == null || rightNode == null) {
@@ -87,6 +134,11 @@ public class DiffRecord {
     }
 
 
+    public String getName() {
+        return (leftNode != null) ? leftNode.getName() : rightNode.getName();
+    }
+
+
 
     public DirectoryNode getLeftParent() {
         return leftParent;
@@ -122,6 +174,15 @@ public class DiffRecord {
     }
 
 
+    public boolean isMoved() {
+        return isMoved;
+    }
+
+
+    public void setMoved(boolean moved) {
+        isMoved = moved;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -135,6 +196,9 @@ public class DiffRecord {
         sb.append("diffType=").append(diffType);
         sb.append(", ");
         sb.append("action=").append(action);
+        if (isMoved) {
+            sb.append(", MOVED");
+        }
         sb.append("]");
         return sb.toString();
     }

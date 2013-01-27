@@ -17,8 +17,12 @@
  */
 package com.jdirsync.ui.viewmodel;
 
+import java.awt.*;
+import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -29,6 +33,7 @@ import com.jdirsync.core.Action1;
 import com.jdirsync.core.Action2;
 import com.jdirsync.model.DiffRecord;
 import com.jdirsync.model.DirectoryNode;
+import com.jdirsync.model.Node;
 import com.jdirsync.synchronizer.Synchronizer;
 import com.jdirsync.task.BuildIndexTask;
 import com.jdirsync.task.SynchronizeTask;
@@ -141,6 +146,7 @@ public class SyncViewModel {
         return isBusyProperty;
     }
 
+
     public void leftToRightButtonPressed() {
         logger.info(leftToRightButtonCaptionProperty.getValue() + " Pressed");
         for (DiffRecordViewModel diffRecordVM :  diffRecordViewModelList) {
@@ -154,6 +160,17 @@ public class SyncViewModel {
             diffRecordVM.actionProperty().set(DiffRecord.Action.USE_RIGHT);
         }
     }
+
+
+    public void restoreOriginalSortOrder() {
+        Collections.sort(diffRecordViewModelList, new Comparator<DiffRecordViewModel>() {
+            @Override
+            public int compare(DiffRecordViewModel o1, DiffRecordViewModel o2) {
+                return o1.getOrder() - o2.getOrder();
+            }
+        });
+    }
+
 
     public void compareButtonPressed() {
         logger.info("Compare Button Pressed");
@@ -199,7 +216,6 @@ public class SyncViewModel {
                     isBusyProperty.set(false);
                     statusProperty.set("Idle");
                 }
-
             }
         });
     }
@@ -265,8 +281,8 @@ public class SyncViewModel {
 
         // Update diff record list
         diffRecordViewModelList.clear();
-        for (DiffRecord diffRecord : diffList) {
-            diffRecordViewModelList.add(new DiffRecordViewModel(diffRecord, leftNameProperty, rightNameProperty));
+        for (int i=0; i<diffList.size(); i++) {
+            diffRecordViewModelList.add(new DiffRecordViewModel(diffList.get(i), leftNameProperty, rightNameProperty, i));
         }
     }
 
@@ -274,19 +290,55 @@ public class SyncViewModel {
     public void keyPressed(KeyEvent keyEvent) {
         if ("1".equals(keyEvent.getText())) {
             if (selectionViewModel.selectedItemProperty().get() != null) {
-                selectionViewModel.selectedItemProperty().get().actionProperty().set(DiffRecord.Action.USE_LEFT);
-                selectionViewModel.selectNext();
+                if (keyEvent.isControlDown()) {
+                    DiffRecord record = selectionViewModel.selectedItemProperty().get().getDiffRecord();
+                    openPath(leftPath, record.getPath(), record.getLeftNode());
+                } else {
+                    selectionViewModel.selectedItemProperty().get().actionProperty().set(DiffRecord.Action.USE_LEFT);
+                    selectionViewModel.selectNext();
+                }
             }
         } else if ("2".equals(keyEvent.getText())) {
             if (selectionViewModel.selectedItemProperty().get() != null) {
-                selectionViewModel.selectedItemProperty().get().actionProperty().set(DiffRecord.Action.USE_RIGHT);
-                selectionViewModel.selectNext();
+                if (keyEvent.isControlDown()) {
+                    DiffRecord record = selectionViewModel.selectedItemProperty().get().getDiffRecord();
+                    openPath(rightPath, record.getPath(), record.getRightNode());
+                } else {
+                    selectionViewModel.selectedItemProperty().get().actionProperty().set(DiffRecord.Action.USE_RIGHT);
+                    selectionViewModel.selectNext();
+                }
             }
         } else if ("0".equals(keyEvent.getText())) {
             if (selectionViewModel.selectedItemProperty().get() != null) {
                 selectionViewModel.selectedItemProperty().get().actionProperty().set(DiffRecord.Action.NONE);
                 selectionViewModel.selectNext();
             }
+        }
+    }
+
+
+    private void openPath(Path basePath, String[] path, Node node) {
+        File resultFile = null;
+
+        try {
+            Path result = basePath;
+
+            for (String part : path) {
+                result = result.resolve(part);
+            }
+
+            if (node == null) {
+                logger.warn("Cannot open UNDEFINED location");
+                return;
+            }
+
+            result = result.resolve(node.getName());
+
+            resultFile = result.toFile();
+            Desktop.getDesktop().open(resultFile);
+        } catch (Exception ex) {
+            logger.error("Failed to open " +
+                    (resultFile != null ? resultFile.getAbsolutePath() : ""), ex);
         }
     }
 }

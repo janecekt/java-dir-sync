@@ -25,6 +25,7 @@ import com.jdirsync.ui.viewmodel.AggregateObservable;
 import com.jdirsync.ui.viewmodel.DiffRecordViewModel;
 import com.jdirsync.ui.viewmodel.MainFormViewModel;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ListChangeListener;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -87,7 +88,7 @@ public class MainFormView implements Initializable {
     private TableColumn<DiffRecordViewModel, String> nameColumn;
 
     @FXML
-    private TableColumn<DiffRecordViewModel, String> diffTypeColumn;
+    private TableColumn<DiffRecordViewModel, DiffRecordViewModel> diffTypeColumn;
 
     @FXML
     private TableColumn<DiffRecordViewModel, DiffRecordViewModel> leftColumn;
@@ -172,6 +173,13 @@ public class MainFormView implements Initializable {
         // Bind TableView
         diffTableView.setItems(viewModel.getSyncViewModel().getDiffRecordList());
 
+        diffTableView.getSortOrder().addListener(new ListChangeListener<TableColumn<DiffRecordViewModel,?>>() {
+            @Override
+            public void onChanged(Change<? extends TableColumn<DiffRecordViewModel, ?>> change) {
+                onSortOrderChanged();
+            }
+        });
+
         diffTableView.addEventHandler(KeyEvent.KEY_PRESSED, new EventHandler<KeyEvent>() {
             @Override
             public void handle(KeyEvent keyEvent) {
@@ -196,11 +204,31 @@ public class MainFormView implements Initializable {
         });
         */
 
-        diffTypeColumn.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<DiffRecordViewModel, String>, ObservableValue<String>>() {
-            public ObservableValue<String> call(TableColumn.CellDataFeatures<DiffRecordViewModel, String> p) {
-                return p.getValue().diffTypeProperty();
+        diffTypeColumn.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<DiffRecordViewModel, DiffRecordViewModel>, ObservableValue<DiffRecordViewModel>>() {
+            public ObservableValue<DiffRecordViewModel> call(TableColumn.CellDataFeatures<DiffRecordViewModel, DiffRecordViewModel> p) {
+                return new AggregateObservable<>(p.getValue(),
+                        p.getValue().diffTypeProperty(),
+                        p.getValue().diffTypeStyleProperty());
             }
         });
+
+        diffTypeColumn.setCellFactory(new Callback<TableColumn<DiffRecordViewModel, DiffRecordViewModel>, TableCell<DiffRecordViewModel, DiffRecordViewModel>>() {
+            @Override
+            public TableCell<DiffRecordViewModel, DiffRecordViewModel> call(TableColumn<DiffRecordViewModel, DiffRecordViewModel> param) {
+                return new TableCell<DiffRecordViewModel, DiffRecordViewModel>() {
+                    @Override
+                    public void updateItem(DiffRecordViewModel item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (!isEmpty()) {
+                            setGraphic( buildTextNode(
+                                    item.diffTypeProperty().getValue(),
+                                    item.diffTypeStyleProperty().getValue() ));
+                        }
+                    }
+                };
+            }
+        });
+
 
 
         leftColumn.setComparator(new Comparator<DiffRecordViewModel>() {
@@ -347,6 +375,14 @@ public class MainFormView implements Initializable {
         });
 
     }
+
+
+    private void onSortOrderChanged() {
+        if (diffTableView.getSortOrder().size() == 0) {
+            viewModel.getSyncViewModel().restoreOriginalSortOrder();
+        }
+    }
+
 
     private static Text buildTextNode(String text, DiffRecordViewModel.Style style) {
         Text textNode = new Text();
