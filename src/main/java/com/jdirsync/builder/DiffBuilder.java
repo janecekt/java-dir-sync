@@ -37,65 +37,49 @@ public class DiffBuilder {
         List<DiffRecord> diffList = new ArrayList<>();
         buildDiff(new String[0], leftRoot, rightRoot, diffList);
         Collections.sort(diffList, DiffRecord.PathAndNameComparator.getInstance());
-        groupRelatedRecords(diffList);
-        return diffList;
+        return groupRelatedRecords(diffList);
     }
 
+    private List<DiffRecord> extractItemsWithSameName(DiffRecord refRecord, DiffRecord.DiffType requiredDiffType, List<DiffRecord> source) {
+        List<DiffRecord> group = new ArrayList<>();
 
-    private void groupRelatedRecords(List<DiffRecord> diffList) {
-        // Reorder list grouping potentially moved items together
-        for (int i=0; i < diffList.size(); i++) {
-            DiffRecord recordI = diffList.get(i);
-
-            // First NON-MOVED item which is MISSING_RIGHT
-            if (recordI.isMoved() || recordI.getDiffType() != DiffRecord.DiffType.MISSING_RIGHT) {
-                continue;
+        for (Iterator<DiffRecord> it = source.iterator(); it.hasNext(); ) {
+            DiffRecord record = it.next();
+            if (refRecord.getName().equals(record.getName()) && (record.getDiffType() == requiredDiffType)) {
+                refRecord.setMoved(true);
+                record.setMoved(true);
+                group.add(record);
+                it.remove();
             }
-
-            int insertIncrement = 1;
-
-            // Move all similar MISSING_RIGHT items
-            for (int j=i+1; j< diffList.size(); j++) {
-                DiffRecord recordJ = diffList.get(j);
-
-                // If records are similar
-                if ( (recordJ.getDiffType() == DiffRecord.DiffType.MISSING_RIGHT) && recordI.getName().equals(recordJ.getName()) )
-                {
-                    // Remove at index J
-                    diffList.remove(j);
-                    diffList.add(i+insertIncrement, recordJ);
-                    insertIncrement++;
-                    recordI.setMoved(true);
-                    recordJ.setMoved(true);
-                }
-            }
-
-            // Move all similar MISSING_LEFT items
-            for (int j=1; j< diffList.size(); j++) {
-                if (i == j) {
-                    continue;
-                }
-
-                DiffRecord recordJ = diffList.get(j);
-
-                // If records are similar
-                if ( (recordJ.getDiffType() == DiffRecord.DiffType.MISSING_LEFT) && recordI.getName().equals(recordJ.getName()) )
-                {
-                    // Remove at index J
-                    diffList.remove(j);
-                    if (j < i+insertIncrement) {
-                        diffList.add(i+insertIncrement-1, recordJ);
-                    }
-                    else {
-                        diffList.add(i+insertIncrement, recordJ);
-                    }
-                    insertIncrement++;
-                    recordI.setMoved(true);
-                    recordJ.setMoved(true);
-                }
-            }
-
         }
+
+        return group;
+    }
+
+    private List<DiffRecord> groupRelatedRecords(List<DiffRecord> source) {
+        List<DiffRecord> result = new ArrayList<>();
+        while (source.size() > 0) {
+            // Remove first item from source
+            DiffRecord refRecord = source.remove(0);
+            if (refRecord.getDiffType() != DiffRecord.DiffType.MISSING_RIGHT) {
+                // Copy it directly into the result
+                result.add(refRecord);
+            } else {
+                // Find all records with the same name but MISSING_LEFT
+                List<DiffRecord> missingLeftWithSameName = extractItemsWithSameName(refRecord, DiffRecord.DiffType.MISSING_LEFT, source);
+                if (missingLeftWithSameName.size() > 0) {
+                    // Find all records with same name but MISSING_RIGHT
+                    List<DiffRecord> missingRightWithSameName = extractItemsWithSameName(refRecord, DiffRecord.DiffType.MISSING_RIGHT, source);
+                    // Add refRecord - this one is also MISSING_RIGHT
+                    missingRightWithSameName.add(0, refRecord);
+                    // Add all MISSING_RIGHT with same name
+                    result.addAll(missingRightWithSameName);
+                    // Add all MISSING_LEFT with same name
+                    result.addAll(missingLeftWithSameName);
+                }
+            }
+        }
+        return result;
     }
 
 
