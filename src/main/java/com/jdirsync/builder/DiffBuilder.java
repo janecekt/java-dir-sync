@@ -61,10 +61,7 @@ public class DiffBuilder {
         while (source.size() > 0) {
             // Remove first item from source
             DiffRecord refRecord = source.remove(0);
-            if (refRecord.getDiffType() != DiffRecord.DiffType.MISSING_RIGHT) {
-                // Copy it directly into the result
-                result.add(refRecord);
-            } else {
+            if (refRecord.getDiffType() == DiffRecord.DiffType.MISSING_RIGHT) {
                 // Find all records with the same name but MISSING_LEFT
                 List<DiffRecord> missingLeftWithSameName = extractItemsWithSameName(refRecord, DiffRecord.DiffType.MISSING_LEFT, source);
                 if (missingLeftWithSameName.size() > 0) {
@@ -76,7 +73,27 @@ public class DiffBuilder {
                     result.addAll(missingRightWithSameName);
                     // Add all MISSING_LEFT with same name
                     result.addAll(missingLeftWithSameName);
+                } else {
+                    result.add(refRecord);
                 }
+            } else if (refRecord.getDiffType() == DiffRecord.DiffType.MISSING_LEFT) {
+                // Find all records with the same name but MISSING_RIGHT
+                List<DiffRecord> missingRightWithSameName = extractItemsWithSameName(refRecord, DiffRecord.DiffType.MISSING_RIGHT, source);
+                if (missingRightWithSameName.size() > 0) {
+                    // Find all records with same name but MISSING_LEFT
+                    List<DiffRecord> missingLeftWithSameName = extractItemsWithSameName(refRecord, DiffRecord.DiffType.MISSING_LEFT, source);
+                    // Add refRecord - this one is also MISSING_RIGHT
+                    missingLeftWithSameName.add(0, refRecord);
+                    // Add all MISSING_RIGHT with same name
+                    result.addAll(missingRightWithSameName);
+                    // Add all MISSING_LEFT with same name
+                    result.addAll(missingLeftWithSameName);
+                } else {
+                    result.add(refRecord);
+                }
+            } else {
+                // Copy it directly into the result
+                result.add(refRecord);
             }
         }
         return result;
